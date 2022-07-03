@@ -4,6 +4,8 @@
 
 \subsection*{Scapy}
 
+Per effettuare i test è stato utilizzato Scapy, un programma scritto in Python che consente di generare traffico. L'idea è semplice. Scapy fa principalmente due cose: inviare pacchetti e ricevere risposte. In questo caso verrà utilizzato solo nella prima modalità di esecuzione, come strumento per generare un flusso di traffico continuo che arrivi all'ip destinazione 79.61.138.204.
+L'installazione è molto rapida e non viene mostrare nella sua interezza. È sufficiente avere Python 2.7 sulla macchina e utilizzare il comando \texttt{pip install scapy}.
 
 \subsection*{Realizzazione}
 
@@ -15,7 +17,7 @@ Il test coinvolge tre macchine:
 
 • La vm victim, su cui sono in esecuzione web server, file server.
 
-L'host A utilizza Scapy, un programma Python che consente di generare traffico. L'obiettivo è inviare pacchetti sulle porte d'interesse del server. È bene ricordare i servizi installati sulla vm victim e le relative porte:
+L'host A utilizza Scapy. L'obiettivo è inviare pacchetti sulle porte d'interesse del server. È bene ricordare i servizi installati sulla vm victim e le relative porte:
 
 \begin{figure}[h]
     \begin{center}
@@ -177,17 +179,24 @@ Infine Snort mostra quanti pacchetti abbiano generati log e alert: in questo cas
 
 • Il numero di pacchetti ricevuti (più di un milione) è di molto superiore rispetto a quello che ha generato un alert. Come mai? Si spiega semplicemente: questo test è stato effettuato in connessione ssh con la vm firewall. La maggior parte del traffico è riconducibile ai pacchetti ssh che non sono stati registrati.
 
-• Scapy aveva comunicato che i pacchetti inviati fossero: 108761 + 118540 + 120121 = 347422. Come mai Snort ne ha loggati solo 276257? Mancano 71165 pacchetti all'appello. La spiegazione più probabile è che una parte sia rimasta nel buffer e sia stata droppata, mentre una parte non sia stata registrata a causa di dei vincoli del mondo reale, ad esempio limiti sul tempo di elaborazione, o limiti sulla memoria.
+• Scapy aveva comunicato che i pacchetti inviati fossero:
+
+108761 + 118540 + 120121 = 347422.
+
+Come mai Snort ne ha loggati solo 276257? Mancano 71165 pacchetti all'appello. La spiegazione più probabile è che una parte sia rimasta nel buffer e sia stata droppata, mentre una parte non sia stata registrata a causa di vincoli del mondo reale, ad esempio limiti sul tempo di elaborazione, o limiti sulla memoria.
+
+Il primo test si può definire concluso. È stato dimostrato il corretto funzionamento di Snort in modalità IDS. Snort ha sniffato più di un milione di pacchetti, di cui più di trecentomila hanno generato avvisi. Gli alert sono stati generati correttamente così come i log, in modo da permettere ad un amministratore di monitorare il traffico e studiare il contenuto dei pacchetti. Snort è riuscito ad elaborare e processare un numero considerevole di pacchetti, soddisfacendo in questo modo i requisiti imposti nei capitoli precedenti.
+Prima di passare al secondo test viene mostrato il modo di procedere di un amministratore che intende andare più a fondo nell'analisi di pacchetti. Non si limita a visualizzare gli avvisi sulla console, bensì vuole leggere il contenuto di un pacchetto.
 
 \subsection*{tcpdump.log}
 
-In questo caso è possibile leggere il file tcpdump.log.1656762820 con il comando riportato a seguire. Con l'opzione -n 10 vengono stampati a schermo gli ultimi dieci pacchetti.
+La directory /var/log/snort si popola di log. Alcuni dovuti all'attività in background del demone Snortd, altri dovuti alle singole istanze di Snort che vengono lanciate da linea di comando. In questo caso è comparso  il file tcpdump.log.1656762820. È possibile leggere il contenuto con il comando snort -r. Con l'opzione -n 10 vengono stampati a schermo solo gli ultimi dieci pacchetti.
 
 \begin{verbatim}
     snort -r tcpdump.log.1656762820 -n 10
 \end{verbatim}
 
-Qui ne viene riportato uno solo:
+Un amministratore che legge i log in formato tcpdump per un pacchetto TCP visualizzerà un contenuto simile a questo:
 
 \begin{verbatim}
     =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
@@ -198,11 +207,11 @@ Qui ne viene riportato uno solo:
     =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
     \end{verbatim}
 
-L'amministratore potrebbe ricavare diverse informazioni come:
+Da cui potrebbe ricavare diverse informazioni come:
 
 • time to live TTL:46
 
-• type of service (TOS) specifica la priorità di un datagram rispetto a un altro
+• type of service (TOS) specifica la priorità di un datagramma rispetto a un altro
 
 • lunghezza dell'header IpLen:20.
 
@@ -212,9 +221,12 @@ L'amministratore potrebbe ricavare diverse informazioni come:
 
 • sequence number Seq in formato esadecimale.
 
+• il campo window Win in formato esadecimale.
+
+
 \subsection*{merged.log}
 
-È anche possibile leggere il file merged.log.
+È anche possibile leggere il file merged.log con il comando u2spewfoo.
 
 \begin{verbatim}
 u2spewfoo merged.log
@@ -235,16 +247,59 @@ Packet
 \end{verbatim}
 
 
-
-
 \section{Test 2: scan delle porte con Nmap}
 
-Il test coinvolge due macchine:
+\subsection*{Nmap}
+Nmap è un comando Linux per l'esplorazione della rete e il controllo della sicurezza.
+Viene utilizzato per ricavare:
 
-• Un host in una rete domestica, l'ip pubblico del router é noto ed é 87.6.233.6
+• informazioni in tempo reale di una rete.
 
-• La vm firewall che ha ip 10.222.111.2
-La prima fa uno scan delle porte, la seconda lo rileva utilizzando Snort.
+• informazioni dettagliate di tutti gli IP visibili in una rete.
+
+• numero di porte aperte in una rete
+
+• l'elenco degli host attivi
+
+• una scansione di porte, sistemi operativi e host
+In questo test viene utilizzato per estrarre informazioni sul server remoto. Eseguire uno scan delle porte è una pratica preliminare comune se si decide di intraprendere un attacco. Non per forza viene utilizzata a questo scopo, tuttavia è bene che un sistema di rilevazione e prevenzione delle intrusioni lo rilevi.
+
+~\cite{geeksforgeeks}.
+
+\subsection*{Realizzazione}
+
+Il test coinvolge tre macchine:
+
+• Un client in una rete domestica (chiamato per comodità host A) che interagisce con il server remoto e esegue lo scan delle porte. L'IP pubblico del router é noto ed é 87.6.233.6
+
+• La vm firewall che ha IP 10.222.111.2, su cui è in esecuzione Snort.
+
+• La vm victim, su cui sono in esecuzione web server, file server.
+Questo test è semplice: l'host A fa uno scan delle porte usando il comando Nmap, la vm firewall lo rileva utilizzando Snort.
+
+Prima di iniziare sono state prese due scelte per la visualizzare gli alert:
+
+• Snort stamperà su console gli avvisi con il comando -A console
+
+• Snort memorizzerà i log nella directory /var/log/snort
+
+Quindi si entra nella directory:
+
+\begin{verbatim}
+cd /var/log/snort
+\end{verbatim}
+
+E si procede per far partire un'istanza di Snort come IDS:
+
+\begin{verbatim}
+snort -i ens160 -c /etc/snort/snort.conf -A console -l .
+\end{verbatim}
+
+Non stupisce che l'host di cui si vuole eseguire lo scan sia proprio 79.61.138.204. Per lo scan delle porte TCP è possibile utilizzare il comando:
+
+\begin{verbatim}
+    sudo nmap 79.61.138.204
+\end{verbatim}
 
 \begin{figure}[h]
     \begin{center}
@@ -252,8 +307,10 @@ La prima fa uno scan delle porte, la seconda lo rileva utilizzando Snort.
             \includegraphics[width=10cm]{figure/test2/nmap_mac.png}
         \end{tabular}
     \end{center}
-    \caption{scan tcp con nmap}
+    \caption{scan tcp con Nmap}
 \end{figure}
+
+L'esito delle nmap mostra che le porte aperte sono 80, 443.
 
 \begin{figure}[h]
     \begin{center}
@@ -264,14 +321,24 @@ La prima fa uno scan delle porte, la seconda lo rileva utilizzando Snort.
     \caption{rilevazione del primo scan da parte di Snort}
 \end{figure}
 
+Simultaneamente sono comparsi gli alert di Snort.
+
+È possibile eseguire un secondo scan per rilevare le porte utilizzate dal protocollo UDP. Viene utilizzata l'opzione -sU.
+
+\begin{verbatim}
+    sudo nmap -sU 79.61.138.204
+\end{verbatim}
+
 \begin{figure}[h]
     \begin{center}
         \begin{tabular}{l}
             \includegraphics[width=10cm]{figure/test2/nmap_sU_mac.png}
         \end{tabular}
     \end{center}
-    \caption{scan udp con nmap}
+    \caption{scan udp con Nmap}
 \end{figure}
+
+L'esito delle nmap mostra che la porta aperta sia 53, quella utilizzata per il DNS.
 
 \begin{figure}[h]
     \begin{center}
@@ -282,21 +349,53 @@ La prima fa uno scan delle porte, la seconda lo rileva utilizzando Snort.
     \caption{rilevazione del secondo scan da parte di Snort}
 \end{figure}
 
+Si conclude in questo modo il test 2: anche in questo caso lo scan é stato rilevato da Snort.
 
 \section{Test 3: simulazione attacco DoS}
 
+Il test coinvolge tre macchine:
 
-Il test coinvolge due macchine:
+• Un client in una rete domestica (chiamato per comodità host A) che interagisce con il server remoto e genera traffico. L'IP pubblico del router é noto ed é 87.6.233.6
 
-• Un host in una rete domestica, l'ip pubblico del router é noto ed é 87.6.233.6
+• La vm firewall che ha IP 10.222.111.2, su cui è in esecuzione Snort.
 
-• La vm firewall che ha ip 10.222.111.
+• La vm victim, su cui sono in esecuzione web server, file server.
 
+Si intende simulare un attacco DoS in modo da osservare il comportamento di Snort in modalità IDS e IPS. Un attacco DoS consiste nell'inviare un flusso continuo di traffico ad un servizio online con l'obiettivo di comprometterne il funzionamento. Il dispositivo che lancia l'attacco è l'host A, utilizzando Scapy, lo stesso software utilizzato nel test 1.
+
+Dal lato server la vm firewall deve intraprendere un'azione di difesa. La prima decisione che va presa è la seguente: quand è che Snort deve generare un alert per un possibile attacco DoS? Ossia, come distinguere un flusso di traffico normale da quello anomalo? Le regole di Snort permettono di stabilire una soglia di pacchetti al secondo oltre la quale viene segnalato un possibile attacco. Questa soglia dipende dalla capacità del server di gestire i pacchetti. In questo esempio però non è oggetto di interesse studiare le performance del software, bensì testare la capacità di Snort di rilevare e prevernire intrusioni. Quindi viene stabilita una soglia "simbolica" di 70 pacchetti ogni 10 secondi, sufficienti per indurre Snort a sospettare di un possibile attacco DoS. Viene scritta una regola di Snort nelle local rules:
 
 \begin{verbatim}
 alert tcp any any -> $HOME_NET any (msg:"TCP SYN flood"; flags:!A; 
 flow: stateless; detection_filter: track by_dst, count 70, seconds 10;
 sid:2000003;)
+\end{verbatim}
+
+Oltre ai normali campi msg, sid, compare il campo detection-filter che consente di specificare la soglia stabilita.
+
+Prima di lanciare l'attacco sono state prese le solite scelte per la visualizzare gli alert:
+
+• Snort stamperà su console gli avvisi con il comando -A console
+
+• Snort memorizzerà i log nella directory /var/log/snort
+
+Quindi si entra nella directory:
+
+\begin{verbatim}
+cd /var/log/snort
+\end{verbatim}
+
+E si procede per far partire un'istanza di Snort come IDS:
+
+\begin{verbatim}
+snort -i ens160 -c /etc/snort/snort.conf -A console -l .
+\end{verbatim}
+
+Finalmente é possibile lanciare l'attacco dall'host A.
+
+\begin{verbatim}
+    send(IP(dst="79.61.138.204")/TCP(dport=[445]),
+    loop=1,inter=0.01)
 \end{verbatim}
 
 \begin{figure}[h]
@@ -308,6 +407,7 @@ sid:2000003;)
     \caption{flusso di pacchetti TCP sulla porta 443}
 \end{figure}
 
+L'intervallo tra un pacchetto e il successivo é solo di 0.01 secondi. In poco tempo viene superata la soglia dei 70 pacchetti, ed iniziano a comparire gli alert sulla console:
 
 \begin{figure}[h]
     \begin{center}
@@ -315,8 +415,18 @@ sid:2000003;)
             \includegraphics[width=15cm]{figure/test3/test3_snort.png}
         \end{tabular}
     \end{center}
-    \caption{rilevazione del TCP FLOOD da parte di Snort}
+    \caption{rilevazione dell'attacco DoS da parte di Snort}
 \end{figure}
+
+Sarebbe stato possibile prevenire l'attacco utilizzando Snort come IPS. FWsnort permette di convertire regole specifiche per l'attacco DoS di Snort in iptables.
+
+Sul terminale bisogna scrivere:
+
+\begin{verbatim}
+    fwsnort
+\end{verbatim}
+
+per far si che Snort attinga alle rules nel path \texttt{/etc/fwsnort/snort.rules} e le converte in iptables. È bene sottolineare che fwsnort non sta convertendo le local rules, bensì delle regole nel file snort.rules specifiche per l'attacco DoS.
 
 \begin{figure}[h]
     \begin{center}
@@ -327,6 +437,8 @@ sid:2000003;)
     \caption{fwsnort}
 \end{figure}
 
+FWsnort genera uno script \texttt{/var/lib/fwsnort/fwsnort.sh}. Una volta eseguito le regole iptables per l'attacco DoS saranno in funzione.
+
 \begin{figure}[h]
     \begin{center}
         \begin{tabular}{l}
@@ -336,7 +448,13 @@ sid:2000003;)
     \caption{fwsnort}
 \end{figure}
 
-\begin{figure}[h]
+Per verificare che la generazione delle regole sia avvenuta con successo si può utilizzare il comando:
+
+\begin{verbatim}
+    iptables -L | grep DOS
+\end{verbatim}
+
+\begin{figure}[ht]
     \begin{center}
         \begin{tabular}{l}
             \includegraphics[width=15cm]{figure/test3/test3_fwsnort3.png}
@@ -345,11 +463,9 @@ sid:2000003;)
     \caption{fwsnort}
 \end{figure}
 
-Per ripristinare le regole iptables del firewall:
+Invece per ripristinare le regole iptables del firewall:
 
 \begin{verbatim}
     service iptables restart
 \end{verbatim}
 
-
-\subsection{Snort, tcpdump e wireshark a confronto}
