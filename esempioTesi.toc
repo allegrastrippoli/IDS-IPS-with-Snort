@@ -1,0 +1,54 @@
+\babel@toc {italian}{}
+\babel@toc {italian}{}
+\contentsline {chapter}{Introduzione}{iv}{chapter*.2}%
+\contentsline {chapter}{Indice}{v}{section*.3}%
+\contentsline {chapter}{Elenco delle figure}{viii}{section*.4}%
+\contentsline {chapter}{\chapternumberline {1}Esempio di Capitolo}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Questa \`e una Sezione}{1}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Questa \`e una Sottosezione}{1}{subsection.1.1.1}%
+\contentsline {chapter}{\chapternumberline {2}Altro Esempio di Capitolo}{2}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Questa \`e una Sezione}{2}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Questa \`e una Sottosezione}{2}{subsection.2.1.1}%
+\contentsline {chapter}{\chapternumberline {3}Sicurezza della rete}{3}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Sicurezza e vulnerabilità della rete}{3}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Quando un sistema è sicuro?}{3}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Minacce comuni in rete}{4}{subsection.3.1.2}%
+\contentsline {section}{\numberline {3.2}Difesa della rete}{7}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Firewall}{7}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Firewall con iptables}{7}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}IDS e IPS}{10}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}Cosa deve garantire un buon IDS e un buon IPS}{10}{subsection.3.2.4}%
+\contentsline {subsection}{\numberline {3.2.5}Tecniche usate}{11}{subsection.3.2.5}%
+\contentsline {subsection}{\numberline {3.2.6}Tipi di IDS}{12}{subsection.3.2.6}%
+\contentsline {subsection}{\numberline {3.2.7}Tipi di IPS}{12}{subsection.3.2.7}%
+\contentsline {chapter}{\chapternumberline {4}Snort: un IDS/IPS network-based}{14}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Definizione}{14}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Modalità di base}{15}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Sniffer Mode}{15}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Packet Logger Mode}{16}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}IDS}{17}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}IPS}{19}{subsection.4.2.4}%
+\contentsline {section}{\numberline {4.3}Rules}{19}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Community Rules e PulledPork}{19}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Local Rules}{20}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}Alert e log}{22}{section.4.4}%
+\contentsline {chapter}{\chapternumberline {5}Requisiti}{23}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Requisiti funzionali}{23}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Requisiti non funzionali}{25}{section.5.2}%
+\contentsline {chapter}{\chapternumberline {6}Realizzazione}{27}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Progetto}{27}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Configurazione della rete}{27}{subsection.6.1.1}%
+\contentsline {chapter}{\chapternumberline {7}Installazione e configurazione di Snort}{30}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Prerequisiti e installazione}{30}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Configurazione}{31}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Community Rules}{33}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Pulled Pork}{33}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Il demone snortd}{34}{section.7.5}%
+\contentsline {section}{\numberline {7.6}FWSnort}{35}{section.7.6}%
+\contentsline {chapter}{\chapternumberline {8}Verifiche funzionali}{37}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Test 1: il generatore di traffico}{37}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Test 2: scan delle porte con Nmap}{43}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Test 3: simulazione attacco DoS}{43}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Snort, tcpdump e wireshark a confronto}{45}{subsection.8.3.1}%
+\contentsline {chapter}{Conclusioni e sviluppi futuri}{47}{chapter*.9}%
+\contentsline {chapter}{Bibliografia}{48}{chapter*.10}%

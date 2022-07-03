@@ -1,0 +1,355 @@
+È necessario testare il comportamento di Snort nelle sue varie modalità. Questo capitolo è dedicato alla realizzazione di verifiche funzionali che permettano di attestare quale sia il grado di difesa che Snort sia in grado di garantire. Il metodo più semplice per dimostrare l'efficacia di un sistema di rilevazione e prevenzione delle intrusioni è rispondere alle domande "Snort ha rilevato il pacchetto X?" "Ha generato un alert?" "Ha agito attivamente per prevenire l'attacco Y?". Un altro criterio che verrà utilizzato è confrontare il numero di pacchetti inviati con il numero di pacchetti elaborati da Snort, se questi numeri sono simili vuol dire che ogni attività viene opportunamente individuata ed elaborata senza grosso margine di errore.
+
+\section{Test 1: il generatore di traffico}
+
+\subsection*{Scapy}
+
+
+\subsection*{Realizzazione}
+
+Il test coinvolge tre macchine:
+
+• Un client in una rete domestica (chiamato per comodità host A) che interagisce con il server remoto e genera traffico. L'IP pubblico del router é noto ed é 87.6.233.6 !!!!
+
+• La vm firewall che ha IP 10.222.111.2, su cui è in esecuzione Snort.
+
+• La vm victim, su cui sono in esecuzione web server, file server.
+
+L'host A utilizza Scapy, un programma Python che consente di generare traffico. L'obiettivo è inviare pacchetti sulle porte d'interesse del server. È bene ricordare i servizi installati sulla vm victim e le relative porte:
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{c @{\hspace{1em}} c  @{\hspace{1em}} c}
+            HTTP   & 80   & TCP \\
+            HTTPS  & 443  & TCP \\
+            TOMCAT & 8080 & TCP \\
+            TOMCAT & 8084 & TCP \\
+            SAMBA  & 137  & TCP \\
+            SAMBA  & 445  & TCP \\
+            SAMBA  & 138  & UDP \\
+            SAMBA  & 139  & UDP \\
+            (a)    & (b)  & (C)
+        \end{tabular}
+    \end{center}
+    \caption{(a) Nome del servizio. (b) Numero di porta. (b)Protocollo.}
+\end{figure}
+
+Dal lato server invece bisogna mettere Snort in condizione di rilevare tutti i pacchetti generati e inviati. Dunque, per tutti i servizi sopra citati viene scritta una corrispondente regola di Snort nelle local rules.
+
+Viene acceduto il file relativo alle local.rules:
+
+\begin{verbatim}
+vi /etc/snort/rules/local.rules
+\end{verbatim}
+
+Vengono scritte le seguenti regole:
+
+\begin{verbatim}
+alert icmp any any -> $HOME_NET any (msg:"icmp detected"; GID:1; sid:10000001;
+rev:001; classtype:icmp-event;)
+alert TCP any any -> $HOME_NET 80 (msg:"Http detected"; sid:10000003; rev:001;)
+alert TCP any any -> $HOME_NET 443 (msg:"Https detected"; sid:10000004; rev:001;)
+alert TCP any any -> $HOME_NET 8080 (msg:"Tomcat detected"; sid:10000005; rev:001;)
+alert TCP any any -> $HOME_NET 8443 (msg:"Tomcat detected"; sid:10000006; rev:001;)
+alert TCP any any -> $HOME_NET 137 (msg:"SMB detected"; sid:10000007; rev:001;)
+alert TCP any any -> $HOME_NET 445 (msg:SMB detected"; sid:10000010; rev:001;)
+alert UDP any any -> $HOME_NET 138 (msg:"SMB detected"; sid:10000008; rev:001;)
+alert UDP any any -> $HOME_NET 139 (msg:"SMB detected"; sid:10000008; rev:001;)
+\end{verbatim}
+
+La sintassi viene ricordata brevemente:
+
+Snort creerà un alert per i pacchetti che hanno source-ip: any, source-port: any, destination-ip: HOME-NET (variabile che corrisponde all'IP 10.222.111.2), destination-port: any, 80, 443, a seconda dell'esigenza. Nella seconda parte della regola (che corrisponde al campo option) si trovano msg: messaggio che compare a schermo o nei log, sid: l'id della rule, rev: informazioni sulla modifica o l'update della regola. In questo vale 001 perché regola non è mai stata revisionata.
+
+Bisogna poi verificare che le local rules siano state importate nel file di configurazione, ossia che in \texttt{/etc/snort/snort.conf} sia presente la seguente riga:
+
+\begin{verbatim}
+include $RULE_PATH/local.rules
+\end{verbatim}
+
+È inoltre necessario riavviare il servizio:
+
+\begin{verbatim}
+systemctl restart snortd
+\end{verbatim}
+
+Prima di iniziare a generare traffico sono state prese queste due scelte per la visualizzare gli alert:
+
+• Snort stamperà su console gli avvisi con il comando -A console
+
+• Snort memorizzerà i log nella directory /var/log/snort
+
+Quindi si entra nella directory:
+
+\begin{verbatim}
+cd /var/log/snort
+\end{verbatim}
+
+E si procede per far partire un'istanza di Snort come IDS:
+
+\begin{verbatim}
+snort -i ens160 -c /etc/snort/snort.conf -A console -l .
+\end{verbatim}
+
+Da questo momento in poi qualsiasi pacchetto che arriva sull'interfaccia ens160 e che matcha le local.rules comparirà sulla console. È arrivato il momento  di utilizzare il software Scapy sulla macchina host A, che generi traffico sulle porte interessate. La shell interattiva di Scapy viene eseguita all'interno di una sessione del terminale. Per avviare ??? la shell bisogna digitare:
+
+\begin{verbatim}
+scapy -H 
+\end{verbatim}
+
+Si decide di aprire tre shell distinte: una per il traffico TCP, una per l'UDP e una per l'ICMP. Vengono eseguiti questi tre comandi in parallelo (nonostante qui vengano mostrati in sequenza):
+
+\begin{verbatim}
+send(IP(dst="79.61.138.204")/TCP(dport=[80,443,8080,8443,137,445]),
+loop=1,inter=0.01)
+send(IP(dst="79.61.138.204")/UDP(dport=[138,139]),loop=1,inter=0.01)
+send(IP(dst="79.61.138.204")/ICMP(),loop=1,inter=0.01)
+\end{verbatim}
+
+Anche in questo caso la sintassi viene ricordata brevemente:
+
+Scapy invierà a intervalli di 0.01 secondi un pacchetto all'IP destinazione 79.61.138.204 nelle porte specificate nell'opzione dport.
+
+Appena viene lanciato il comando sulla console della vm firewall compaiono i seguenti avvisi:
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=15cm]{figure/test1/test1console.png}
+        \end{tabular}
+    \end{center}
+    \caption{visualizzazione sulla console degli alert di Snort}
+\end{figure}
+
+Il flusso è continuo e gli alert si leggono in modo chiaro.
+Un amministratore interessato ad approfondire il contenuto dei pacchetti potrebbe utilizzare i comandi:
+
+• snort -r
+
+• u2spewfoo
+
+per leggere i log che si sono generati nella directory indicata.
+Dopo circa 25 minuti viene interrotto il flusso di traffico. Scapy mostra dei messaggi che indica il numero di pacchetti inviati:
+
+Per il traffico TCP: \texttt{Sent 108761 packets.}
+
+Per il traffico ICMP: \texttt{Sent 118540 packets.}
+
+Per il traffico UDP: \texttt{Sent 120121 packets.}
+
+Snort mostra sulla console delle statistiche:
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test1/test1RunTime.png}
+        \end{tabular}
+    \end{center}
+    \caption{tempo di esecuzione di Snort per l'elaborazione dei pacchetti}
+\end{figure}
+
+La figura sopra riportata mostra la durata di esecuzione dell'istanza di Snort. In questo caso il ciclo di vita è stato di 25 minuti e 49 secondi. Sono stati ricevuti 865 pacchetti al secondo.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test1/test1Received.png}
+        \end{tabular}
+    \end{center}
+    \caption{pacchetti ricevuti da Snort sulla ens160}
+\end{figure}
+
+Snort in totale ha ricevuto più di un milione di pacchetti.
+La voce \textbf{"Outstanding"} indica quanti pacchetti sono memorizzati nel buffer in attesa di elaborazione. Questo risultato dipende dalla specifica implementazione del DAQ.
+La voce \textbf{"Drop"} indica quanti pacchetti sono stati persi, ossia quanti pacchetti Snort non ha elaborato.
+Se questi due valori coincidono vuol dire che il numero di pacchetti persi è causato dalla repentina interruzione dell'istanza di Snort.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test1/test1AlertLog.png}
+        \end{tabular}
+    \end{center}
+    \caption{pacchetti che hanno generato log e avvisi}
+\end{figure}
+
+Infine Snort mostra quanti pacchetti abbiano generati log e alert: in questo caso 276257. Bisogna fare due considerazioni.
+
+• Il numero di pacchetti ricevuti (più di un milione) è di molto superiore rispetto a quello che ha generato un alert. Come mai? Si spiega semplicemente: questo test è stato effettuato in connessione ssh con la vm firewall. La maggior parte del traffico è riconducibile ai pacchetti ssh che non sono stati registrati.
+
+• Scapy aveva comunicato che i pacchetti inviati fossero: 108761 + 118540 + 120121 = 347422. Come mai Snort ne ha loggati solo 276257? Mancano 71165 pacchetti all'appello. La spiegazione più probabile è che una parte sia rimasta nel buffer e sia stata droppata, mentre una parte non sia stata registrata a causa di dei vincoli del mondo reale, ad esempio limiti sul tempo di elaborazione, o limiti sulla memoria.
+
+\subsection*{tcpdump.log}
+
+In questo caso è possibile leggere il file tcpdump.log.1656762820 con il comando riportato a seguire. Con l'opzione -n 10 vengono stampati a schermo gli ultimi dieci pacchetti.
+
+\begin{verbatim}
+    snort -r tcpdump.log.1656762820 -n 10
+\end{verbatim}
+
+Qui ne viene riportato uno solo:
+
+\begin{verbatim}
+    =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+    07/02-12:53:47.224263 87.6.233.6:52571 -> 10.222.111.2:443
+    TCP TTL:46 TOS:0x0 ID:24849 IpLen:20 DgmLen:44
+    ******S* Seq: 0xF0988237  Ack: 0x0  Win: 0x400  TcpLen: 24
+    TCP Options (1) => MSS: 1452
+    =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+    \end{verbatim}
+
+L'amministratore potrebbe ricavare diverse informazioni come:
+
+• time to live TTL:46
+
+• type of service (TOS) specifica la priorità di un datagram rispetto a un altro
+
+• lunghezza dell'header IpLen:20.
+
+• lunghezza del pacchetto header + data DgmLen:44
+
+• IP packet ID (intero che identifica un datagramma, se due frammenti hanno lo stesso id riassemblati nello stesso pacchetto)
+
+• sequence number Seq in formato esadecimale.
+
+\subsection*{merged.log}
+
+È anche possibile leggere il file merged.log.
+
+\begin{verbatim}
+u2spewfoo merged.log
+\end{verbatim}
+
+Viene mostrato il payload di un pacchetto:
+
+\begin{verbatim}
+Packet
+	sensor id: 0	event id: 1	event second: 1656757856
+	packet second: 1656757856	packet microsecond: 501909
+	linktype: 1	packet_length: 66
+[    0] 00 0C 29 BE C1 97 30 91 8F 4A 25 14 08 00 45 00  ..)...0..J%...E.
+[   16] 00 34 36 68 40 00 71 06 9C 28 67 62 55 F1 0A DE  .46h@.q..(gbU...
+[   32] 6F 02 EE 26 01 BD 25 50 91 32 00 00 00 00 80 02  o..&..%P.2......
+[   48] 20 00 71 84 00 00 02 04 05 AC 01 03 03 02 01 01   .q.............
+[   64] 04 02
+\end{verbatim}
+
+
+
+
+\section{Test 2: scan delle porte con Nmap}
+
+Il test coinvolge due macchine:
+
+• Un host in una rete domestica, l'ip pubblico del router é noto ed é 87.6.233.6
+
+• La vm firewall che ha ip 10.222.111.2
+La prima fa uno scan delle porte, la seconda lo rileva utilizzando Snort.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test2/nmap_mac.png}
+        \end{tabular}
+    \end{center}
+    \caption{scan tcp con nmap}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=15cm]{figure/test2/nmap_snort.png}
+        \end{tabular}
+    \end{center}
+    \caption{rilevazione del primo scan da parte di Snort}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test2/nmap_sU_mac.png}
+        \end{tabular}
+    \end{center}
+    \caption{scan udp con nmap}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=15cm]{figure/test2/nmap_sU_snort.png}
+        \end{tabular}
+    \end{center}
+    \caption{rilevazione del secondo scan da parte di Snort}
+\end{figure}
+
+
+\section{Test 3: simulazione attacco DoS}
+
+
+Il test coinvolge due macchine:
+
+• Un host in una rete domestica, l'ip pubblico del router é noto ed é 87.6.233.6
+
+• La vm firewall che ha ip 10.222.111.
+
+
+\begin{verbatim}
+alert tcp any any -> $HOME_NET any (msg:"TCP SYN flood"; flags:!A; 
+flow: stateless; detection_filter: track by_dst, count 70, seconds 10;
+sid:2000003;)
+\end{verbatim}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test3/test3_mac.png}
+        \end{tabular}
+    \end{center}
+    \caption{flusso di pacchetti TCP sulla porta 443}
+\end{figure}
+
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=15cm]{figure/test3/test3_snort.png}
+        \end{tabular}
+    \end{center}
+    \caption{rilevazione del TCP FLOOD da parte di Snort}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test3/test3_fwsnort1.png}
+        \end{tabular}
+    \end{center}
+    \caption{fwsnort}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=10cm]{figure/test3/test3_fwsnort2.png}
+        \end{tabular}
+    \end{center}
+    \caption{fwsnort}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=15cm]{figure/test3/test3_fwsnort3.png}
+        \end{tabular}
+    \end{center}
+    \caption{fwsnort}
+\end{figure}
+
+Per ripristinare le regole iptables del firewall:
+
+\begin{verbatim}
+    service iptables restart
+\end{verbatim}
+
+
+\subsection{Snort, tcpdump e wireshark a confronto}

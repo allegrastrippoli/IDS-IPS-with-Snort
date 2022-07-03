@@ -1,0 +1,55 @@
+\section{Requisiti funzionali}
+
+Un'azienda dispone di un server su cui ha installato il virtualizzatore VMware che permette di creare/gestire macchine virtuali. L'azienda ha la necessità di esporre dei servizi su internet. Per farlo vuole utilizzare un router telelcom che ha due schede di rete, una con IP pubblico 79.61.138.204 e l'altra con ip privato 10.222.111.1 che si affaccia sulla lan 10.222.111.0/24.
+Tramite virtualizzatore i titolari dell'azienda hanno già creato una prima virtual machine chiamata vm firewall su cui gira il sistema operativo CentOS7, una distro linux. La macchina dispone di un'unica scheda di rete (escludendo l'interfaccia di loopback) la ens160, corrispondente all'indirizzo IP 10.222.111.2. Il router di default è quello telecom.
+Le risorse assegnate alla vm sono:
+
+• 8 core
+
+• 32 GB ram
+
+• 250 GB hdd
+
+Il router è configurato in modo da forwardare tutti i pacchetti che hanno come destinatario 79.61.138.204 sull'interfaccia ens160 della vm firewall.
+(Non potendo servirsi di servizi aggiornati?)
+L'azienda ha l'esigenza di utilizzare dei servizi non recenti, non sempre aggiornati e teme per la sicurezza della propria rete. Il suo obiettivo è garantire riservatezza integrità disponibilità dei dati in qualsiasi momento. Se ad esempio non riuscisse a conservare private le informazioni personali degli utenti che utilizzano i servizi offerti, andrebbe incontro a gravi ripercussioni (anche legali). Allo stesso modo, se non riuscisse a mantenere attivo il servizio a causa di malfunzionamenti potrebbe subire perdite economiche. Allo scopo di proteggere la rete vuole configurare manualmente il firewall con iptables (e disabilitare firewalld e SELinux utilizzati di default).
+I servizi che vuole esporre in rete sono:
+
+• un web server usando il protocollo applicativo HTTP (sulla porta 80) e HTTPS (sulla porta 443) pubblicato utilizzando il servizio Http Apache versione 2.4.6
+
+• un web server con Tomcat versione 7.0.76
+
+• un database server con MariaDB versione 5.5.68
+
+• un file server con Samba versione 4.10.16
+
+Tuttavia all'azienda  \textbf{NON} interessano i dettagli relativi all'installazione dei servizi e  \textbf{NON} è oggetto di interesse nemmeno la configurazione del firewall.
+Bensì richiede i seguenti requisiti funzionali, legati ancora una volta al tema della sicurezza:
+
+• Un utente deve essere in grado di utilizzare i servizi installati sulla macchina in sicurezza. Tanto che quando arriva del traffico sulle porte relative ai servizi installati, deve essere notificato e registrato, in modo che un amministratore di rete possa successivamente investigare il contenuto dei pacchetti se lo ritiene necessario. Deve essere possibile poter effettuare dei controlli mirati sui pacchetti, ad esempio analizzare solo le GET HTTP, solo i pacchetti provenienti da un IP o da un range di IP, su una porta o su un range di porte.
+
+• Devono poter essere rilevati possibili attacchi in rete. Se avviene una rilevazione deve essere notificata all'amministratore, in modo che possa intervenire per contrastarla. L'avviso deve essere chiaro e far riferimento all'attacco. Ad esempio un volume non indifferente di traffico rilevato in modo continuo deve essere identificato come "possible DoS attack" e non "UDP packet detected" o "TCP packet detected".
+
+• Devono essere prese delle misure contro possibili attacchi in rete. Non è sufficiente rilevare la minaccia, il sistema deve essere in grado di prevenire l'attacco in modo da da esonerare l'amministratore da un intervento repentino (qualora possibile). Si richiede quindi l'uso di una tecnologia capace di intervenire attivamente per eliminare pacchetti che sono ritenuti sospetti.
+
+\begin{figure}[htb]
+    \begin{center}
+        \begin{tabular}{l}
+            \includegraphics[width=15cm]{figure/net_requirement.pdf}
+        \end{tabular}
+    \end{center}
+    \caption{Rete nel suo stato primordiale. I componenti sono il router e la macchina virtuale vm firewall.}
+\end{figure}
+
+\section{Requisiti non funzionali}
+
+L'azienda richiede anche che venga rispettata una serie di requisiti non funzionali quali:
+
+• Modularità. Un sistema modulare prevede la suddivisione delle funzionalità da svolgere in aree distinte. Il vantaggio principale è riuscire a identificare una correzione o riuscire ad apportare un cambiamento anche rilevante, senza dover stravolgere la configurazione precedente, ma riuscendo a individuare l'area interessata e intervenendo solo su questa.
+Eventuali modifiche ricadranno esclusivamente su tale area e non sull'intero sistema.
+
+• Scalabilità. Un sistema scalabile permette l’aggiunta di funzionalità e ulteriori requisiti a posteriori senza grandi stravolgimenti della struttura, ma solo applicando le nuove caratteristiche richieste nell'area di competenza. Se ad esempio nel prossimo futuro l'azienda decidesse di espandersi e di esporre nuovi servizi in rete, non è consigliabile che riveda l'intera struttura della rete, ma agisca in un contesto molto più ristretto.
+
+• Minor numero possibile di falsi positivi e negativi. Un falso positivo si verifica quando il sistema classifica come maligna un'attività che invece dovrebbe essere autorizzata. Ad esempio se dei pacchetti vengono danneggiati lungo il tragitto potrebbero essere valutati erroneamente come maligni e scartati. Al contrario un falso negativo si verifica quando un'attività sospetta supera controlli, analisi dei pacchetti e raggiunge l'ip destinatario indisturbato. Un falso negativo può generare una quantità di danni variabile, potrebbe compromettere l'integrità dell'intero sistema. Per questo è importante mantenere il minor numero possibile di falsi positivi e negativi.
+
+• Open source. L'azienda richiede che vengano utilizzati software open source. Non solo richiedono bassi costi iniziali, molto frequentemente offrono la possibilità di customizzazione (ossia di adeguare il software alle esigenze dell'utente sfruttando l'aiuto della community), e garantiscono maggiore stabilità e protezione, grazie alla loro popolarità/ diffusione e al supporto di sviluppatori esperti che partecipano alla comunità. Inoltre un software di questo tipo libera l’azienda dalla dipendenza da un unico produttore, da un’unica architettura, da un unico protocollo, al contrario permette un alto livello di integrazione. Il codice è continuamente revisionato e corretto.

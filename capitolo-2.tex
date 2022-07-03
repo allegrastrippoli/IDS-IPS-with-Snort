@@ -1,0 +1,227 @@
+Utilizzare sistemi IDS e IPS in una rete risulta vantaggioso per diverse ragioni. Gli IDS/IPS hanno un buon grado di conoscenza dei livelli applicativi, (a differenza del firewall la cui competenza si ferma ai livelli 3 e 4 della pila ISO-OSI) possono investigare i pacchetti e sono istruiti in modo da riconoscere eventuali pattern di attacco noti sfruttando delle strategie di detection signature-based, behaviour-based e policy-based.
+Viene ora posta l'attenzione su un particolare NIDS/NIPS chiamato Snort, un software nato nel 1998 diventato molto popolare e diffuso grazie alla sua usabilità e al fatto di essere open source. Sfrutta una strategia di detection rule-based (basato su regole), leggermente differente rispetto alle tecniche descritte in precedenza. A differenza delle firme, le regole si basano sull'identificazione della vulnerabilità effettiva, non su un exploit. Questo tipo di rilevamento è in genere classificato come "0-day detection", perché non è necessario che il virus abbia infettato qualcuno per scrivere una regola, bensì è sufficiente una comprensione approfondita delle vulnerabilità. Snort ha una community vasta e questo permette di aggiornare continuamente le rules. Non appena viene scritta una nuova regola tutta la community ne potrà beneficiare semplicemente facendo un aggiornamento.
+
+\section{Definizione}
+
+Snort è un software open source rule-based che permette di rilevare e prevenire intrusioni in una lan. A seconda di come configurato può generare alert che avvisano gli utenti, oppure può intraprendere azioni attive sui pacchetti sospetti bloccandone il transito. Le regole possono essere scritte/modificate da un utente che abbia i privilegi da amministratore oppure posso essere utilizzate direttamente le rules offerte dalla community. In entrambi i casi è possibile adattarle alle esigenze della propria rete. Inoltre Snort è in grado di combinare più strategie di detection. Oltre alla gestione delle rules può eseguire analisi di protocollo (policy-based detection) o studiare le anomalie (behaviour-based detection). Un esempio può essere l'analisi del protocollo TCP. Se dei pacchetti di SYN contenessero dei dati, o venissero ricevuti dei dati al di fuori della finestra di ricezione, allora verrebbe segnalata un'attività sospetta all'amministratore.
+
+Le componenti principali di Snort sono citate brevemente:
+
+• Decodificatore di pacchetti: raccoglie e prepara i pacchetti per la pre-elaborazione.
+
+• Pre-processori: componente che organizza e modifica i pacchetti per il motore di ricerca.
+
+• Motore di ricerca: Il componente principale che elabora e analizza i pacchetti applicando le regole.
+
+• Logging e alert: Componente per la generazione di log e alert.
+
+
+\section{Modalità di base}
+
+Il comportamento di Snort nei confronti dei pacchetti varia a seconda della sua configurazione. Esistono diverse modalità di esecuzione che vengono presentate a seguire.
+
+\subsection{Sniffer Mode}
+
+Snort in sniffer mode ha un funzionamento analogo a tcpdump: sniffa il traffico che transita su un'interfaccia e lo stampa su console. A differenza di tcpdump offre il riepilogo del traffico di rete alla fine dell'acquisizione. In questo modo vengono stampati con diversi livelli di dettaglio i contenuti dei pacchetti della suite TCP/IP, è possibile decidere di mostrare l'header, il payload o tutto il pacchetto. È importante sottolineare che per ora non sono state ancora introdotte regole, quindi Snort snifferà e stamperà a schermo indiscriminatamente tutto il traffico presente sull'interfaccia.
+
+I parametri che possono essere utilizzati sono:
+
+• -i per specificare l'interfaccia da sniffare
+
+• -v verbose
+
+• -d mostra il payload del pacchetto
+
+• -e mostra l'header del pacchetto
+
+• -X per fare il display di tutto il contenuto del pacchetto
+
+Un esempio di utilizzo è il seguente:
+
+\vspace{1cm}
+
+Esempio: snort -i ens160 -v.
+
+\vspace{1cm}
+
+In questo modo partirà un'istanza di Snort che snifferà il traffico sull'interfaccia ens160 e lo stamperà su console in verbose mode.
+
+\subsection{Packet Logger Mode}
+
+Il passaggio successivo allo sniffing dei pacchetti è la loro registrazione. Snort in packet logger mode memorizza su disco il traffico rilevato. La registrazione è avviene utilizzando l'opzione -l, seguita dalla directory in cui si desidera archiviare i log. La directory predefinita di Snort è /var/log/snort. Se i log venissero memorizzati solo in formato ASCII la directory di registrazione potrebbe diventare molto congestionata nel tempo, a causa del numero sempre crescente di directory e file. Registrare il traffico di una rete molto attiva potrebbe portare ad esaurire gli inode (una struttura dati Unix che limita il numero totale di file in un filesystem) molto prima di esaurire lo spazio di archiviazione. Questa esplosione di file può mettere a dura prova la macchina e potrebbe finire per trasformarsi in un vero e proprio attacco DoS. Per questo i log vengono registrati in binario e poi all'occorrenza vengono convertiti in formato ASCII per essere letti dall'amministratore.
+
+I parametri che possono essere utilizzati sono:
+
+• -l permette di specificare la directory dove si vogliono memorizzare i log
+
+• -k ASCII i log vengono memorizzati nel formato più leggibile per l'utente. Quando Snort viene eseguito in questa modalità, raccoglie ogni pacchetto che vede e lo colloca in una gerarchia di directory basata sull'indirizzo IP degli host.
+
+• -r opzione per leggere i log memorizzati in binario
+
+• -n si specifica il numero dei pacchetti da leggere.
+
+I vari parametri possono essere combinati a quelli dello sniffer mode.
+
+\vspace{1cm}
+
+Esempio: snort -v -i ens160 -l /var/log/snort
+
+\vspace{1cm}
+
+Questo comando permette di memorizzare i log nella directory var/log/snort. Terminando l'esecuzione e accedendo alla directory specificata sarà possibile vedere che è stato generato un file binario dal nome snort.log.*. Per leggerlo è possibile utilizzare l'opzione -r in questo modo:
+
+\vspace{1cm}
+
+snort -r snort.log.1655428986 -n 10
+
+\vspace{1cm}
+
+L'amministratore sarà in grado di leggere gli ultimi 10 pacchetti in formato ASCII.
+
+
+\subsection{IDS}
+
+Nelle modalità viste finora Snort non ha funzionato da IDS/IPS, mancava l'ingrediente fondamentale: le rules. Le rules vanno specificate nel file di configurazione il cui path predefinito di solito è /etc/snort/snort.conf. È possibile avere più file snort1.conf, snort2.conf etc... e decidere quale utilizzare nel momento in cui si lancia una nuova istanza di Snort. Se un pacchetto matcha con una regola viene registrato e si genera un alert, altrimenti viene eliminato. Alla creazione di un alert l'amministratore di rete viene avvisato (anche tramite email) e può intervenire tempestivamente.
+Dovendo funzionare in real time, per stare al passo con la velocità della rete si utilizza unified2, che registra in forma binaria il più velocemente possibile. Inoltre non dovrebbe essere utilizzata l'opzione -v soprattutto da Bash (Shell di CentOS), perchè considerata lenta e dispendiosa in termini di cicli di CPU, e potrebbe inoltre comportare la perdita di alcuni pacchetti.
+
+I parametri che possono essere utilizzati sono:
+
+• -c permette di definire il file di configurazione a cui fa riferimento una specifica istanza di Snort
+
+• -T testa il file di configurazione
+
+• -N vengono disabilitati i log
+
+• -D Snort funziona da demone (in backgound)
+
+• -A alert mode
+
+Esistono diversi tipi di alert mode:
+
+– Full alert mode: fornisce tutte le possibili informazioni sull'alert. Viene usato come mode di default. I log vengono registrati in formato tcpdump.log
+
+\vspace{1cm}
+
+Esempio: snort -i ens160 -A full -c /etc/snort/snort.conf
+
+\vspace{1cm}
+
+– fast: vengono generati degli alert che mostrano ,timestamp, IP sorgente e destinazione, i numeri delle porte. I log vengono registrati in formato tcpdump.log
+
+\vspace{1cm}
+
+Esempio: snort -i ens160 -A fast -c /etc/snort/snort.conf
+
+\vspace{1cm}
+
+– console: gli alert vengono visualizzati su console. I log vengono registrati in formato tcpdump.log
+
+\vspace{1cm}
+
+Esempio: snort -i ens160 -A console -c /etc/snort/snort.conf
+
+\vspace{1cm}
+
+– cmg: venono mostrati sulla console dettagli dell'header e del payload del pacchetti in formato di testo e esadecimale.
+
+\vspace{1cm}
+
+Esempio: snort -i ens160 -A cmg -c /etc/snort/snort.conf
+
+\vspace{1cm}
+
+– none: per disabilitare gli alert. Questa opzione viene utilizzata se si vogliono disabilitare i normali log a vantaggio dei log unified2.
+
+
+\subsection{IPS}
+
+Oltre alle modalità viste finora Snort ne possiede una quarta, l'inline mode. In In IDS mode non viene bloccato in nessun modo il traffico, si utilizzano delle librerie pcap per catturare i pacchetti, che poi vengono analizzati dal motore di ricerca e se si rivela necessario vengono generat deli alert. Snort-inline invece utilizza un modulo ip-queue e delle librerie libipq (alternative a pcap) che permettono di incanalare i pacchetti in una coda e applicare le regole iptables direttamente a quella coda. In base alle iptables alcuni pacchetti verrano bloccati. In questa modalitá sono presenti tre tipi di regole: DROP (i pacchetti vengono scartati e loggati), REJECT (i pacchetti vengono scartati, loggati e viene chiusa la connessione TCP, oppure viene inviato un ICMP port-unreachable) e SDROP (scarta i pacchetti senza loggare nulla)
+
+\vspace{1cm}
+
+Un altro modo per realizzare intrusion prevention è utilizzando FwSnort, un software che permette di tradurre le rules in iptables. Il funzionamento è il seguente: FWSnort si occupa di creare uno script .sh che, se eseguito, provvede ad aggiungere le regole al firewall. Lo script .sh non modificando i file iptables permette facilmente di risalire alla configurazione precedente. Normalmente il path di default utilizzato per leggere le regole è /etc/fwsnort/snort-rules. L'unico limite di questa configurazione è il fatto di non lavorare in real-time, le iptables non vengono aggiornate in tempo reale e quindi non mettono al riparo da attacchi non previsti dal set di regole utilizzate in quel momento.
+
+
+\section{Rules}
+
+\subsection{Community Rules e PulledPork}
+
+Le regole della community sono tutte le regole che sono state presentate dai membri della comunità open source. Vengono aggiornate ogni giorno ma è possibile che la frequenza vari a seconda dell'urgenza delle vulnerabilità rilevate. Per sollevare l'amministratore dell'onere di aggiornare manualmente le rules a cadenza regolare si utilizza PulledPork, un plugin che permette di scaricare automaticamente pacchetti di regole. Per fare in modo questo meccanismo funzioni autonomamente, nei sistemi operativi Unix/Unix-like, viene modificato il file crontab (con il comando crontab -e). Crontab é un file gestito da un demone che permette di pianificare l'esecuzione di script. In questo caso viene utilizzato per eseguire PulledPork ogni giorno.
+PulledPork consente il download automatizzato, l'analisi e la modifica di tutti i set di regole snort. Esegue anche verifiche checksum per tutti i download di regole principali. Genera automaticamente del file sid-msg.map aggiornati che permettono la mappatura tra i nomi degli avvisi msg (il messaggio che compare a schermo/nei log) e i sid ('id della rule)
+
+\vspace{1cm}
+
+Esempio di come si può modificare il crontab: mm hh * * * /usr/local/bin/pulledpork.pl -c /etc/snort/pulledpork.conf -l
+
+\vspace{1cm}
+
+(mm indica il minuto, un numero compreso tra 00 e 59, ed hh indica l’ora, un numero compreso tra 01 e 24):
+
+
+\subsection{Local Rules}
+
+Per realizzare un sistema di difesa con Snort potrebbe essere utile all'amministratore scrivere personalmente delle regole. Le rules che non vengono scaricate dalla comunità, ma che vengono scritte da utenti autorizzati sono chiamate "local rules".
+Le regole hanno un campo header e un campo option.L'header comprende a sua volta diversi campi:
+
+• Action: alert, drop (blocca e logga), reject (blocca logga e termina la connessione)
+
+• Protocol: tcp,udp,icmp
+
+• Source IP: any, un intervallo di ip, uno specifico ip
+
+• Source port: any, un range di porte,una porta
+
+• Direction:
+
+– -> si è interessati esclusivamente ai pacchetti che partono dal source ip e arrivano al destination ip
+
+– <> si è interessati ai traffico in ambi i sensi
+
+• Destination IP: any, un intervallo di ip, uno specifico ip
+
+• Destination port: any, un range di porte,una porta
+
+L'options invece:
+
+• msg: è il messaggio che compare a schermo o nei log
+
+• reference: riferimento a un CVE (Common Vulnerabilities and Exposures)
+
+• sid: l'id della rule. Deve essere un numero > di 1000000, le regole al di sotto sono riservate
+
+• rev: informazioni sulla modifica o l'update della regola. Se rev:1 la regola non è mai stata revisionata.
+
+Esempio:
+
+alert icmp ant any -> 10.222.111.2 any (msg:"ICMP test detected"; sid:1000001; rev:001;)
+
+Snort manda un alert per i pacchetti che hanno source-ip: any, source-port: any, destination-ip: 10.222.111.2, destination-port: any.
+
+Le regole sono tanto precise da permettere di filtrare il traffico proveniente da un singolo ip, da un range di ip e da più range di ip. Ad esempio la regola che inizia con alert icmp [192.168.1.0/24, 10.1.1.0/24] any <> .. . genererà un alert per gli ip appartenenti a queste due sottoreti. Usando il !10.1.1.0/24 si può anche escludere un ip o un range di ip dall'analisi dei pacchetti.
+
+È possibile filtrare il traffico per porta o per range di porte. Ad esempio scrivendo 1:1024 nel campo source port è possibile creare degli alert per tutti i pacchetti in transito nell'intervallo di porte dalla 1 alla 1024.
+
+Infine il campo options delle rule può contenere un payload, oppure dei flags per distinguere i FIN, SYN, ACK
+
+Ad esempio:
+
+• alert tcp any any <> any 80 (msg: "GET Request Found"; content:"GET"; sid: 100001; rev:1;)
+
+Crea un alert per le GET http.
+
+• alert tcp any any <> any any (msg: "FLAG TEST"; flags:S; sid: 100001; rev:1;)
+
+Crea un alert per i SYN.
+
+\section{Alert e log}
+
+Comprendere il meccanismo di alerting e logging di Snort può facilitare l'apprendimento dell'intero funzionamento del sistema di rilevazione. Ecco alcuni dei principali strumenti di appoggio che permettono la corretta creazione dei file di log e registrazione dei pacchetti:
+
+• Libpcap, Libnet, tcpdump sono API che permettono di costruire iniettare e gestire pacchetti di rete, svolgono il ruolo di packet analyzer. Vengono utilizzate per acquisire o inviare pacchetti da un dispositivo di rete live o da un file.
+
+• Snort introduce il DAQ, Data Acquisition System. Il DAQ sostituisce le chiamate dirette alle funzioni libpcap che si occupano della cattura dei pacchetti, per conentire un livello di astrazione che faciliti il funzionamento di Snort.
+
+• Pcap è la libreria DAQ predefinita. Se snort viene eseguito senza argomenti DAQ, funzionerà utilizzando questo modulo. Pcap si occupa della cattura dei pacchetti che verranno poi successivamente analizzati.
+
+•Uno dei formati di file binario in cui possono essere registrati i pacchetti si chiama "Unified2". Unified2 è anche il nomer del parser che consente di elaborare i log in oggetti python. Lo scopo principale è estrarre i dati di un pacchetto dal log,
+
