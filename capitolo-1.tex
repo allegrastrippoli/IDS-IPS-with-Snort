@@ -1,29 +1,10 @@
 \section{Sicurezza e vulnerabilità della rete}
 
-\subsection{Quando un sistema è sicuro?}
-
-I dati contenuti in un pc permettono di raggiungere un alto grado di conoscenza circa il contesto in cui esso viene utilizzato (circa il contesto in cui si trova). In un pc privato potrebbero essere memorizzati dati di carte di credito, numeri di conti correnti bancari, fotografie, file personali. In un pc utilizzato da un'azienda potrebbero essere memorizzati i dati dei clienti, rendiconti finanziari, documenti etc... Nel momento in cui un pc entra a far parte di una rete ed è quindi in grado di comunicare con altri dispositivi collegati direttamente o raggiungibili indirettamente, questi dati vanno protetti affinché non vadano persi, non vengano compromessi o finiscano nelle mani sbagliate. La rapida proliferazione dei dati digitali rende il problema della sicurezza e della protezione dei dati così comune da riguardare chiunque utilizzi pc, smartphone, tablet ...
-La sicurezza di un sistema può essere analizzata e descritta a partire da cinque caratteristiche fondamentali (cenni The Security Architecture of the OSI Reference Model (ISO7498-2) ~\cite{OSIReferenceModel(ISO7498-2)}):
-
-\vspace{1cm}
-
-• Riservatezza: lo scopo è mantenere private le informazioni personali e garantire che siano visibili e accessibili solo agli utenti legittimi, in modo da prevenire la divulgazione non autorizzata. Si ottiene principalmente criptando i dati.
-
-• Integrità: è necessario garantire che i dati siano accurati e affidabili e che non vengano modificati (operazioni di cancellazione, modifica) in modo errato. L’integrità può essere garantita da meccanismi di checksum, oltre che da meccanismi per il controllo dell’accesso ai dati.
-
-• Disponibilità: le applicazioni e i dati devono essere completamente disponibili quando un utente legittimo ne ha bisogno. I sistemi devono risultare funzionanti con il livello di prestazioni prestabilito e nessuno dovrebbe essere in grado di minacciare il loro funzionamento regolare. Per garantire la disponibilità dei dati bisogna prevenire minacce intenzionali, ma anche fenomeni “naturali” come , cali di tensione, guasti all’hardware etc...
-
-• L'autenticità consiste nel poter identificare in modo certo la provenienza di un messaggio. Dal momento che le informazioni sul mittente previste dai protocolli di comunicazione sono di solito facilmente falsificabili non è detto che sia un requisito facile da soddifare.
-
-• Non ripudio: l’autore di una dichiarazione non può negare la paternità della stessa. Allo stesso modo, chi riceve il messaggio non può negare di averlo ricevuto. In genere, il metodo più utilizzato per la verifica dell’origine dei dati è il passaggio per i certificati digitali. L'integrità e l’autenticità dei dati sono prerequisiti per il Non ripudio.
-
-\vspace{1cm}
-
-Questi principi sono un punto di partenza per definire il concetto di rete sicura. Il passo successivo è quello di individuare le minacce più comuni per un host che vive connesso in rete, per poter poi strutturare meccanismi di difesa intelligenti che riconoscano i pattern di attacco e intraprendano delle misure per contrastarli. Quando si realizza un sistema di difesa si procede per strati, si utilizzano strumenti di difesa passivi e poi, a seconda della necessità, si fa affidamento a tecnologie più evolute (ma più costose) per il controllo del traffico e per la prevenzione di attacchi.
+Quando si realizza un sistema di difesa si procede per livelli, si utilizzano strumenti di difesa passivi e poi, a seconda della necessità, si fa affidamento a tecnologie più evolute (ma più costose) per il controllo del traffico e per la prevenzione di attacchi. Come si possono strutturare meccanismi di difesa intelligenti che riconoscano i pattern di attacco e adottino delle misure per contrastarli? Il primo passo è acquisire una conoscenza profonda delle possibili minacce e vulnerabilità della rete. In questo capitolo non viene offerta una panoramica completa, bensì uno scorcio che permetta di comprendere quali siano nel concreto le motivazioni che spingono gli utenti a introdurre sistemi di difesa.
 
 \subsection{Minacce comuni in rete}
 
-Per minacce "comuni" si intendono tutte quelle a cui un utente potrebbe andare incontro con un  utilizzo sistematico dei principali servizi in rete. Un utente naviga siti web, gestisce la propria posta elettronica, utilizza pennette usb, esegue il download di file etc ... e non sempre è consapevole di esporsi a dei rischi.
+Per minacce "comuni" si intendono tutte quelle a cui un utente potrebbe andare incontro con un  utilizzo sistematico dei principali servizi in rete. Un utente naviga siti web, gestisce la propria posta elettronica, utilizza pennette usb, esegue il download di file etc... e non sempre è consapevole di esporsi a dei rischi.
 Gli attacchi più comuni da cui difendersi sono ~\cite{softwarelab} :
 
 \vspace{1cm}
@@ -46,9 +27,6 @@ Un exploit è un frammento di codice o software che sebbene non sia di per sé d
 
 Un attacco DDoS (Distributed Denial of Service) consiste nell'inviare un flusso continuo di traffico falso ai servizi online, come i siti web, fino a quando non si sovraccaricano e crollano. Si distingue dall'attacco DoS (Denial of Service) perché il traffico è proveniente da più fonti e non da un singolo dispositivo. Si può descrivere come un bombardamento di traffico al servizio, il quale non è attrezzato per gestire l'enorme volume di trafficco e collassa. In questo modo gli utenti reali che hanno necessità di accedere ad una risorsa di rete sono impossibilitati. Più aumenta il numero di fonti da cui parte la minaccia e più è difficile identificare l'autore primario. Esistono diverse tipologie di DDoS, può trattarsi di un attacco indiscriminato, mirato a colpire un protocollo o addirittura una specifica vulnerablità di un'applicazione web. Ad accumunarli è il concetto di "flood" (inondazione) e le modalità con cui vengono realizzati, spesso tramite una rete di bot.
 
-\vspace{1cm}
-
-Questi sono solo alcuni degli attacchi più diffusi. L'obiettivo non è quello di offrire una panoramica completa, bensì uno scorcio che permetta di comprendere la necessità di introdurre degli strumenti che difendano la rete. Inoltre, mostrare degli esempi di minaccia concreti permette di motivare le scelte che vengono prese successivamente durante la realizzazione del sistema di difesa.
 
 \section{Difesa della rete}
 

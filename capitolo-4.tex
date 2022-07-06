@@ -1,28 +1,25 @@
 \section{Progetto}
 
-Dopo aver analizzato i requisiti presentati nel capitolo 3 si inizia a realizzare il progetto.
-
-\subsection{Configurazione della rete}
-
-Si procede come prima cosa con la suddivisione della rete per aree funzionali. La rete deve:
+Dopo aver analizzato i requisiti presentati nel capitolo 3 si inizia a realizzare il progetto. Si procede come prima cosa con la suddivisione della rete per aree funzionali. La rete deve:
 
 • gestire la sicurezza
 
 • esporre i servizi su internet
 
-Queste aree di lavoro vanno tenute separate per soddisfare due dei requisiti non funzionali indicati dall'azienda: la modularità e la scalabilità.
-Si sceglie quindi di introdurre una seconda macchina virtuale chiamata vm victim che ospiti web server, database server e file server. Il nome 'victim' è giustificato dal fatto che ogni possibile attacco in rete sarà direzionato verso questa macchina virtuale, poiché espone dei servizi su internet. Si intende assegnare alla vm firewall ogni responsabilità relativa alla gestione della sicurezza dell'intera rete (firewall e altri strumenti di difesa...), mentre alla vm victim ogni responsabilità circa la gestione di dati e servizi.
-Si intuisce che la victim non possa avere un ip nell'intervallo  10.222.111.0/24. Se così fosse sarebbe in grado di comunicare direttamente con il router telecom, invece l'obiettivo é che la victim si trovi \textbf{a valle} della vm firewall, in modo che questa possa filtrare il traffico.
-Si decide di procedere in questo modo:
+Queste aree di lavoro vanno tenute separate per soddisfare due dei requisiti indicati dall'azienda: la modularità e la scalabilità.
+Per perseguire tale scopo si sceglie di introdurre una seconda macchina virtuale chiamata vm victim che ospiti web server e file server. Il nome 'victim' è giustificato dal fatto che ogni possibile attacco in rete sarà direzionato verso questa macchina virtuale, poiché espone dei servizi su internet. Si intende assegnare alla vm firewall ogni responsabilità relativa alla gestione della sicurezza dell'intera rete (firewall e altri strumenti di difesa...), mentre alla vm victim ogni responsabilità circa la gestione di dati e servizi.
+Si intuisce che la victim non possa avere un IP nell'intervallo 10.222.111.0/24. Se così fosse sarebbe in grado di comunicare direttamente con il router telecom (che ha IP 10.222.111.1), invece l'obiettivo é che la victim si trovi \textbf{a valle} della vm firewall, in modo che tutto il traffico a lei destinato venga prima filtrato dalla vm firewall.
+Si decide di procedere così:
 
-• Viene aggiunta una seconda scheda di rete ens224 alla vm firewall, con ip 50.50.50.1
+• Si dedica un intervallo di indirizzi IP privati 50.50.50.0/24 ad una lan, chiamata lan dei server.
 
-• La vm victim appartiene alla lan 50.50.50.0/24, una lan di server, ha un'unica interfaccia ens160 (oltre a quella di loopback) che corrisponde all'indirizzo 50.50.50.3.  il router di default è 50.50.50.1.
+• Alla vm firewall viene aggiunta una seconda scheda di rete ens224, con ip 50.50.50.1.
 
-Il flusso di traffico che arriva al router telecom viene rigirato sull'interfaccia esterna della vm firewall (ens160). Dopo essere stato filtrato/ analizzato la vm firewall svolge il ruolo di router per la lan 50.50.50.0/24, ossia smista i pacchetti tra i vari host seguendo le regole di forwarding. Questa configurazione è perfetta per soddisfare i requisiti di modularità e scalabilità e per permettere il corretto funzionamento della rete.
-Se la vm victim riscontrasse qualche problema e fosse necessario un intervento, non c'è modo che questo possa interferire o compromettere la sicurezza dell'intera rete, poiché sulla vm victim non risiede alcuno script/ file/ servizio per la gestione della sicurezza. Le macchine virtuali sono separate per ruoli, e questo permette di non propagare modifiche e correzioni, bensì qualsiasi intervento ricadrà unicamente nell'aria di competenza.
+• La vm victim appartiene alla lan dei server, ha un'unica interfaccia ens160 (oltre a quella di loopback) che corrisponde all'indirizzo 50.50.50.3.  Il router di default è 50.50.50.1.
+
+In questo modo la vm firewall si trova tra il router e la vm victim. Il router è configurato in modo da rigirare tutto il traffico che proviene da internet sull'interfaccia esterna della vm firewall (ens160). La vm firewall dopo aver filtrato e analizzato i pacchetti li smista tra i vari host della lan dei server seguendo le regole di forwarding, svolgendo così il ruolo di router per la 50.50.50.0/24. Questa configurazione è perfetta per soddisfare i requisiti di modularità e scalabilità e per permettere il corretto funzionamento della rete. Se la vm victim riscontrasse qualche problema e fosse necessario un intervento, non c'è modo che questo possa interferire o compromettere la sicurezza dell'intera rete, poiché sulla vm victim non risiede alcuno script/ file/ servizio per la gestione della sicurezza. Le macchine virtuali sono separate per ruoli, e questo permette di non propagare modifiche e correzioni, bensì qualsiasi intervento ricadrà unicamente nell'aria di competenza.
 Una rete realizzata in questo modo è anche scalabile. Se nel prossimo futuro l'azienda decidesse di espandersi e avesse bisogno di creare altre macchine virtuali, potrebbe popolare la lan dei server con ben altri 252 dispositivi! (256 indirizzi disponibili in /24 -1 prefisso -1 broadcast -1 indirizzo router - 1 indirizzo vm victim = 252).
-Il cuore dell'intera rete è la lan dei server, su cui vengono installati dei servizi che sono esposti su internet. Per evitare perdita e compromissione dei dati, tentativi di connessione non autorizzati, injection di codice, e altra attività malevola bisogna lavorare sulla vm firewall, macchina virtuale il cui unico scopo è quello di proteggere la lan dei server. Configurare manualmente il firewall risolve solo parte dei problemi legati alla sicurezza. Si limita ad applicare delle regole, senza nessun tipo di consapevolezza sul traffico che sta attraversando la rete in quel momento. È possibile aspirare ad un tipo di intelligenza che sia superiore a quella del firewall, che permetta di effettuare un controllo sul contenuto dei singoli pacchetti, in modo da monitorare continuamente il flusso di traffico e rilevare e prevenire eventuali comportamenti anomali?
+Il cuore dell'intera rete è la lan dei server, su cui vengono installati dei servizi che sono esposti su internet. Per evitare perdita e compromissione dei dati, tentativi di connessione non autorizzati, injection di codice, e altra attività malevola bisogna lavorare sulla vm firewall, macchina virtuale il cui unico scopo è quello di proteggere la lan dei server. Configurare manualmente il firewall risolve solo parte dei problemi legati alla sicurezza. Si limita ad applicare delle regole, senza nessun tipo di consapevolezza sul traffico che sta attraversando la rete in quel momento. È possibile aspirare ad un tipo di intelligenza che sia superiore a quella del firewall, che permetta di effettuare un controllo sul contenuto dei singoli pacchetti, in modo da monitorare continuamente il flusso di traffico e rilevare e prevenire eventuali comportamenti anomali? Una possibile soluzione potrebbe essere introdutte un sistema IDS/IPS che abbia un buon grado di conoscenza dei livelli applicativi, (a differenza del firewall la cui competenza si ferma ai livelli 3 e 4 della pila ISO-OSI) possa investigare i pacchetti e sia istruito in modo da riconoscere eventuali pattern di attacco noti. Tra tutte le alternative si è deciso di utilizzare Snort, un software open source affidabile, supportato da una vasta community e adatto a soddisfare le esigenze della rete. A seconda di come configurato può generare alert che avvisano gli utenti, oppure può intraprendere azioni attive sui pacchetti sospetti bloccandone il transito.
 
 \begin{figure}[htb]
     \begin{center}
@@ -33,21 +30,36 @@ Il cuore dell'intera rete è la lan dei server, su cui vengono installati dei se
     \caption{Progetto di realizzazione della rete che soddisfi i requisiti imposti nel capitolo 3.}
 \end{figure}
 
-Vengono elencati brevemente i vari componenti della rete:
+Vengono elencati brevemente i vari componenti della rete da sinistra verso destra:
 
-• vm firewall che ospita il firewall,
+• \textbf{vm victim} nella lan dei server con una scheda di rete:
 
-– IP 10.222.111.2, ens160, il router di default è 10.222.111.1
+– ens160 con IP 50.50.50.3, il router di default è 50.50.50.1
 
-– IP 50.50.50.1, ens224
+• \textbf{uno switch virtuale}
 
-• vm victim nella lan dei server,
+• \textbf{vm firewall} che ospita il firewall e Snort, con due schede di rete:
 
-– IP 50.50.50.3, ens160, il router di default è 50.50.50.1
+– ens160 con IP 10.222.111.2, il router di default è 10.222.111.1
 
-• Un altro componente della rete è uno switch virtuale
+– ens224 con IP 50.50.50.1
 
-\vspace*{1cm}
+• \textbf{il router telecom} con due schede di rete:
 
-Viene riportato brevemente uno scenario parallelo di insuccesso, per rafforzare ancora di piú la scelta di progettare la rete nel modo illustrato dalla figura.
-Se la vm victim e la vm firewall fossero due host appartenenti alla stessa lan (e non rispettivamente un host e il router), la vm victim dovrebbe ospitare un firewall per filtrare il traffico proveniente dal router di default (il router telecom).
+– IP privato 10.222.111.1
+
+– IP pubblico 79.61.138.204
+
+Per la realizzazione della macchina virtuale vm victim viene seguita la linea definita dall'azienda e viene utilizzato il sistema operativo CentOS 7, una distro linux distribuita nel 2014 utilizzata tendenzialmente in ambienti server. Esistono diverse tipologie di installazione, quella utilizzata per la vm victim è specifica per la realizzazione di un web server. Non viene utilizzata interfaccia grafica per aumentare il più possibile le performance. Se un amministratore di rete si dovesse connettere in ssh sul web server per apportare delle modifiche, accuserebbe già dei tempi di rallentamento per via della connessione da remoto. Si decide quindi di non utilizzare interfaccia per permettere di lavorare nel modo più snello e rapido possibile.
+La macchina viene configurata in questo modo:
+
+• viene settato l'IP statico 50.50.50.3
+
+• il DNS di riferimento è Google con IP 8.8.8.8
+
+• vengono installati i web server, file server richiesti
+
+Il passo successivo è mostrare nel dettaglio la realizzazione del sistema di rilevazione e prevenzione delle intrusioni con Snort.
+
+
+

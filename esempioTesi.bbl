@@ -1,15 +1,10 @@
-\begin{thebibliography}{otORMI}
+\begin{thebibliography}{cyb}
 
 \bibitem[cyb]{cybersecurity360}
 \url{https://www.cybersecurity360.it/soluzioni-aziendali/}.
 
 \bibitem[gee]{geeksforgeeks}
 \url{https://www.geeksforgeeks.org/nmap-command-in-linux-with-examples/}.
-
-\bibitem[otORMI]{OSIReferenceModel(ISO7498-2)}
-The Security~Architecture of~the OSI Reference Model (ISO7498-2).
-\newblock
-  \url{https://www.sciencedirect.com/topics/computer-science/security-architecture}.
 
 \bibitem[sof]{softwarelab}
 \url{https://softwarelab.org/it/exploit/}.
