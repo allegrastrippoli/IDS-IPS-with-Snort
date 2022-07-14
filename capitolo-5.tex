@@ -1,31 +1,16 @@
 \section{Prerequisiti e installazione}
 
-Come prerequisito è necessario installare delle librerie che permettono di catturare pacchetti.
+Come prerequisito è necessario installare delle librerie che permettono di catturare pacchetti: gcc, flex, bison, zlib, libpcap, pcre, libdnet, tcpdump e libnghttp2.
 
-\begin{verbatim}
-    yum install -y gcc flex bison zlib libpcap pcre libdnet tcpdump   
-    yum install -y libnghttp2  
-\end{verbatim}
+Poi viene installato Snort con il package manager della distribuzione utilizzata.
 
-Poi viene installato Snort.
-
-\begin{verbatim}
-    yum install snort.x86_64
-\end{verbatim}
-
-Per aggiornare le librerie installate:
-
-\begin{verbatim}
-    ldconfig
-\end{verbatim}
-
-Snort su CentOS viene installato nella directory /usr/local/bin/snort, è buona norma creare un link simbolico nel path /usr/sbin/snort.
+Snort su CentOS viene installato nella directory \texttt{/usr/local/bin/snort}, è buona norma creare un link simbolico nel path \texttt{/usr/sbin/snort}. \texttt{/usr/sbin} è dedicata a programmi di gestione del sistema (normalmente non utilizzati dagli utenti ordinari).
 
 \begin{verbatim}
     ln -s /usr/local/bin/snort /usr/sbin/snort  
 \end{verbatim}
 
-Per eseguire Snort in modo sicuro senza accedere come root, bisogna creare un nuovo utente senza privilegi e un nuovo gruppo di utenti.
+Per eseguire Snort in modo sicuro senza che esegua con i privilegi di root, bisogna creare un nuovo utente e un nuovo gruppo di utenti.
 
 \begin{verbatim}
 groupadd snort
@@ -36,11 +21,11 @@ useradd snort -r -s /sbin/nologin -c SNORT_IDS -g snort
 
 Per adeguare Snort alle esigenze della rete bisogna:
 
-• modificare il file di configurazione.
-
-• importare le regole.
-
-• gestire i log.
+\begin{itemize}
+    \item  modificare il file di configurazione.
+    \item importare le regole.
+    \item gestire i log.
+\end{itemize}
 
 Le principali directory utilizzate da Snort sono:
 
@@ -48,33 +33,15 @@ Le principali directory utilizzate da Snort sono:
 
 \texttt{/var/log/snort}: in questa directory vengono memorizzati i log, si possono specificare anche altri path, questo è quello di default.
 
-Bisogna assicurarsi che lo user snort e il gruppo snort abbiano i permessi di lettura/ scrittura/ esecuzione in questo modo:
+Bisogna assicurarsi che lo user snort e il gruppo snort abbiano i permessi di lettura/ scrittura/ esecuzione.
+Viene creato un file per le local.rules, ossia per tutte quelle regole customizzate dall'amministratore.
+
+Ora si arriva al cuore della configurazione. Bisogna modificare il file snort.conf in modo da soddisfare i requisiti della rete.
+Snort deve catturare e analizzare i pacchetti provenienti dall'interfaccia esterna della vm firewall. Per fare questo bisogna definire la variabile HOME\_NET e assegnargli il range di IP da proteggere 10.222.111.0/24. Viene creata anche una seconda variabile EXTERNAL\_NET per indicare la rete esterna, in questo caso rappresentante tutti gli indirizzi IP non compresi nella HOME\_NET
 
 \begin{verbatim}
-    chmod -R 5775 /etc/snort
-    chmod -R 5775 /var/log/snort
-    chmod -R 5775 /usr/local/lib/snort_dynamicrules
-    chown -R snort:snort /etc/snort
-    chown -R snort:snort /var/log/snort
-    chown -R snort:snort /usr/local/lib/snort_dynamicrules
- \end{verbatim}
-
-Viene creato un file per le local.rules: \texttt{vi /etc/snort/rules/local.rules }
-
-Ora si arriva al cuore della configurazione. Bisogna modificare il file snort.conf in modo da soddisfare i requisiti della rete. Per farlo si accede al file con il comando \texttt{vi /etc/snort/snort.conf}
-Snort deve sniffare e analizzare i pacchetti sull'interfaccia esterna della vm firewall, per fare questo bisogna definire la variabile HOME-NET e assegnargli il range di IP da proteggere 10.222.111.2/24. Viene creata anche una seconda variabile EXTERNAL-NET per indicare la rete esterna, in questo caso rappresentata da tutte le altre lan e internet.
-
-\begin{verbatim}
-ipvar HOME_NET 10.222.111.2/24
+ipvar HOME_NET 10.222.111.0/24
 ipvar EXTERNAL_NET !$HOME_NET
-\end{verbatim}
-
-Vengono create delle variabili che definiscano il path delle rules.
-
-\begin{verbatim}
-var RULE_PATH /etc/snort/rules
-var SO_RULE_PATH /etc/snort/so_rules
-var PREPROC_RULE_PATH /etc/snort/preproc_rules
 \end{verbatim}
 
 Qui viene specificato il formato dei log, in questo caso utilizzando unified2 e tcpdump
@@ -89,18 +56,16 @@ output log_tcpdump: tcpdump.log
 Per includere le local.rules:
 
 \begin{verbatim}
-include RULE_PATH/local.rules
+include /etc/snort/rules/local.rules
 \end{verbatim}
 
 Manca un ultimo passaggio: includere le community rules.
 
-\section{Community Rules}
+\subsection{Community Rules}
 
-Per scaricare le community rules:
 
-\begin{verbatim}
-wget https://www.snort.org/rules/community -O ~/community.tar.gz
-\end{verbatim}
+È possibile trovare le Community Rules sul sito ufficiale di Snort.
+
 
 Per estrarre le regole e copiarle nella directory dove si trovano le rules:
 
@@ -109,13 +74,7 @@ tar -xvf ~/community.tar.gz -C ~/
 cp ~/community-rules/* /etc/snort/rules
 \end{verbatim}
 
-Per commentare tutte le regole diverse da quelle della community:
-
-\begin{verbatim}
-sed -i 's/include RULE_PATH/#include RULE_PATH/' /etc/snort/snort.conf
-\end{verbatim}
-
-Per includere tutte le regole della community in /etc/snort/snort.conf
+Per includere tutte le regole della community in \texttt{/etc/snort/snort.conf}
 
 \begin{verbatim}
 include $RULE_PATH/snort.rules
@@ -123,27 +82,23 @@ include $RULE_PATH/snort.rules
 
 \section{Pulled Pork}
 
-Ora è possibile procedere con l'installazione di PulledPork il plugin che permette di scaricare automaticamente le nuove regole della community.
+Ora è possibile procedere con l'installazione di PulledPork, il plugin che permette di scaricare automaticamente le nuove regole della community.
+
+Viene installato PulledPork con il package manager della distribuzione utilizzata.
+
+Lo script si trova nella directory \texttt{/usr/local/bin/} e viene reso eseguibile con il comando:
 
 \begin{verbatim}
-yum -y install pulledpork
+chmod +x /usr/local/bin/pulledpork.pl
 \end{verbatim}
 
-Lo script Perl si trova nella directory /usr/local/bin/ e bisogna verfificare che sia eseguibile:
-
-\begin{verbatim}
- chmod +x /usr/local/bin/pulledpork.pl
-\end{verbatim}
-
-È possibile verficare il corretto funzionamento eseguendo PulledPork:
+Per verificare il corretto funzionamento:
 
 \begin{verbatim}
 /usr/local/bin/pulledpork.pl –V
 \end{verbatim}
 
-Il file di configurazione si trova in \texttt{/etc/snort}, si chiama pulledpork.conf e va modificato:
-
-\texttt{vi /etc/snort/pulledpork.conf}
+Il file di configurazione si trova in \texttt{/etc/snort}, si chiama pulledpork.conf e va modificato.
 
 Viene specificato il path delle community rules da aggiornare:
 
@@ -157,24 +112,14 @@ Pulled pork richiede anche il path delle local.rules per costruire dei file sid-
 local_rules=/usr/local/etc/snort/rules/local.rules
 \end{verbatim}
 
-I file sid-msg.map si trovano qui:
-\begin{verbatim}
-sid_msg=/usr/local/etc/snort/sid-msg.map
-\end{verbatim}
-
-viene specificato anche il path del file di configurazione di Snort:
-\begin{verbatim}
-config_path=/usr/local/etc/snort/snort.conf
-\end{verbatim}
-
-Pulled pork aggiorna una blocklist di ip pubblici bloccati dalla comunità:
+Pulled pork aggiorna una blocklist di indirizzi IP bloccati dalla comunità:
 \begin{verbatim}
 block_list=/usr/local/etc/snort/rules/iplists/default.blocklist
 \end{verbatim}
 
 \section{Il demone snortd}
 
-Per far si che Snort lavori in background viene attivato il demone snortd. I demoni sono dei programmi eseguiti in background, cioè senza il controllo diretto di un utente. Un sistema di difesa ha l'esigenza di catturare pacchetti e analizzare il traffico durante tutto l'arco di vita della macchina (esposta in rete). Per questo viene largamente sfruttata questa possibilità.
+Per far sì che Snort lavori in background, viene eseguito come demone. Un sistema di difesa ha l'esigenza di catturare pacchetti e analizzare il traffico durante tutto il periodo di attività della macchina. Per questo viene largamente sfruttata questa possibilità.
 
 \begin{verbatim}
 systemctl daemon-reload
@@ -187,18 +132,11 @@ Per avere la conferma che l'avvio del demone sia andata a buon fine:
 systemctl status snortd
 \end{verbatim}
 
-\section{FWSnort}
+\section{FwSnort}
 
-FWsnort è uno script perl che traduce le regole di Snort in iptables. Alcune regole non hanno una traduzione diretta, tuttavia circa il 65 per cento delle rules possono essere tradotte con successo utilizzando l'iptables string match module (modulo che confronta l'inizio della stringa che compone la regola con la chiave di una mappa. Se viene trovata una corrispondenza restituisce l'oggetto corrispondete, un iptables). FWsnort analizza anche la policy iptables in esecuzione sulla macchina per determinare quali regole Snort sono applicabili.
+FwSnort è uno script che traduce le regole di Snort in regole iptables. Alcune non hanno una traduzione diretta, tuttavia circa il 65\% delle regole possono essere tradotte con successo utilizzando l'iptables string match module (modulo che confronta l'inizio della stringa che compone la regola con la chiave di una mappa. Se viene trovata una corrispondenza restituisce l'oggetto corrispondete, un iptables). FwSnort analizza anche la policy iptables in esecuzione sulla macchina per determinare quali regole Snort sono applicabili.
 
-Per installare fwsnort:
-
-\begin{verbatim}
-cd /usr/local/src
-wget http://www.cipherdyne.org/fwsnort/download/fwsnort-1.0.tar.bz2 
-wget http://www.cipherdyne.org/fwsnort/download/fwsnort- 1.0.tar.bz2.md5
-wget http://www.cipherdyne.org/fwsnort/download/fwsnort- 1.0.tar.bz2.asc
-\end{verbatim}
+È possibile scaricare il codice sorgente dal sito ufficiale.
 
 Per estrarre ed eseguire il file a partire dal pacchetto bz2:
 
@@ -208,17 +146,9 @@ cd /usr/local/src/fwsnort-1.0
 ./install.pl
 \end{verbatim}
 
-Per far partire un'istanza di fwsnort:
-
-\begin{verbatim}
-fwsnort
-\end{verbatim}
-
-FWSnort installato su un sistema operativo che offre il supporto per il string match module nel kernel, procederà per la traduzione delle regole in iptables, mostrando da cli quante regole sono state convertite correttamente.
-
 Il file di configurazione si trova nella directory \texttt{/etc/fwsnort/fwsnort.conf}
 
-FWSnort gestisce tutto il traffico che attraversa la macchina locale ed è diretto verso/proviene dalla lan. Nel file di configurazione vengono definite delle variabili che corrispondo a ip/porte e vengono utilizzate nelle rules.
+Nel file di configurazione vengono definite delle variabili che corrispondono a indirizzi IP o a porte e vengono utilizzate nelle regole.
 
 \begin{verbatim}
 HOME_NET                10.222.111.0/24;
@@ -232,8 +162,17 @@ HTTP_PORTS              80;
 SHELLCODE_PORTS         !80;
 \end{verbatim}
 
-Un esempio di community rules:
+Si noti che è stato scelto un range di porte SSH al posto della porta di default 22. Questo per motivi di sicurezza: leggendo i log SSH nella directory \texttt{/var/log/secure} e i log registrati dallo stesso Snort, si è visto che esistono degli script automatizzati che tentano continuamente di instaurare una connessione SSH con il server. Per eliminare il problema, SSH è stato reso disponibile su un altre porte.
+
+Un esempio di regola facente parte delle community rules che usa le variabili specificate durante la configurazione:
 
 \begin{verbatim}
-alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"SERVER-APACHE Apache Tomcat view source attempt"; flow:to_server,established; content:"%252ejsp"; http_uri; metadata:ruleset community, service http; reference:bugtraq,2527; reference:cve,2001-0590; classtype:web-application-attack; sid:1056; rev:16;)
+alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS 
+(msg:"SERVER-APACHE Apache Tomcat view source attempt";
+ flow:to_server,established; content:"%252ejsp"; http_uri;
+metadata:ruleset community, service http; 
+reference:bugtraq,2527; reference:cve,2001-0590;
+classtype:web-application-attack; sid:1056; rev:16;)
 \end{verbatim}
+
+~\cite{FWSnort} ~\cite{techrepublic}.
